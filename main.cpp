@@ -63,7 +63,7 @@ int getWinningPlayer(int grid[3][3])
 		}
 		if (rowHasWinner || colHasWinner)
 		{
-			return grid[i][0];
+			return grid[i][i];
 		}
 	}
 
