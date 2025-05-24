@@ -86,6 +86,64 @@ bool hasValidMove(int grid[3][3])
 	return false;
 }
 
+struct BestMove
+{
+	int value = 0;
+	int row = -1;
+	int col = -1;
+};
+
+constexpr int MAX = 0;
+constexpr int MIN = 1;
+constexpr int EMPTY = -1;
+
+BestMove minimax(int grid[3][3], bool isMax, int depth)
+{
+	const int winner = getWinningPlayer(grid);
+	if (winner == MAX)
+	{
+		return { 10 - depth, -1, -1 };
+	}
+	else if (winner == MIN)
+	{
+		return { depth - 10, -1, -1 };
+	}
+
+	if (!hasValidMove(grid))
+	{
+		return { 0, -1, -1 };
+	}
+
+	BestMove bestMove{ isMax ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max(), -1, -1 };
+
+	// Generate next move
+	for (int i = 0; i < 3; ++i)
+	{
+		for (int j = 0; j < 3; ++j)
+		{
+			if (grid[i][j] == EMPTY)
+			{
+				grid[i][j] = isMax ? MAX : MIN; // temporary fill the cell with the current player's mark
+
+				const bool isNextPlayerMax = !isMax;
+				auto currentMove = minimax(grid, isNextPlayerMax, depth + 1);
+
+				grid[i][j] = EMPTY; // undo move
+
+				if (isMax && currentMove.value > bestMove.value || 
+					!isMax && currentMove.value < bestMove.value)
+				{
+					bestMove = currentMove;
+					bestMove.row = i;
+					bestMove.col = j;
+				}
+			}
+		}
+	}
+
+	return bestMove;
+}
+
 void WinMain()
 {
 	sf::RenderWindow window(sf::VideoMode(800, 800), "Tic-tac-toe");
@@ -116,6 +174,32 @@ void WinMain()
 	int currentPlayer = 0;
 	bool isGameOver = false;
 
+	auto evaluateGameOver = [&]()
+	{
+		int winningPlayer = getWinningPlayer(grid);
+		if (winningPlayer != EMPTY)
+		{
+			isGameOver = true;
+
+			std::ostringstream oss;
+			oss << "Player " << winningPlayer
+				<< (winningPlayer == 0 ? " (mark X) " : " (mark O) ")
+				<< "wins\n"
+				<< "Press F5 for new game!";
+			gameOver.setString(oss.str());
+		}
+		// Handle draw result
+		else if (!hasValidMove(grid))
+		{
+			isGameOver = true;
+
+			std::ostringstream oss;
+			oss << "Draw!\n"
+				<< "Press F5 for new game!";
+			gameOver.setString(oss.str());
+		}
+	};
+
 	while (window.isOpen())
 	{
 		sf::Event event;
@@ -135,27 +219,14 @@ void WinMain()
 					grid[pos.x][pos.y] = currentPlayer;
 					currentPlayer = !currentPlayer;
 
-					int winningPlayer = getWinningPlayer(grid);
-					if (winningPlayer != -1)
+					evaluateGameOver();
+					if (!isGameOver)
 					{
-						isGameOver = true;
-
-						std::ostringstream oss;
-						oss << "Player " << winningPlayer
-							<< (winningPlayer == 0 ? " (mark X) " : " (mark O) ")
-							<< "wins\n"
-							<< "Press F5 for new game!";
-						gameOver.setString(oss.str());
-					}
-					// Handle draw result
-					else if (!hasValidMove(grid))
-					{
-						isGameOver = true;
-
-						std::ostringstream oss;
-						oss << "Draw!\n"
-							<< "Press F5 for new game!";
-						gameOver.setString(oss.str());
+						// Make AI move
+						BestMove move = minimax(grid, false, 0);
+						grid[move.row][move.col] = MIN;
+						currentPlayer = !currentPlayer;
+						evaluateGameOver();
 					}
 				}
 			}
