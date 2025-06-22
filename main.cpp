@@ -97,7 +97,7 @@ constexpr int MAX = 0;
 constexpr int MIN = 1;
 constexpr int EMPTY = -1;
 
-BestMove minimax(int grid[3][3], bool isMax, int depth)
+BestMove minimax(int grid[3][3], bool isMax, int depth, int alpha, int beta)
 {
 	const int winner = getWinningPlayer(grid);
 	if (winner == MAX)
@@ -126,7 +126,7 @@ BestMove minimax(int grid[3][3], bool isMax, int depth)
 				grid[i][j] = isMax ? MAX : MIN; // temporary fill the cell with the current player's mark
 
 				const bool isNextPlayerMax = !isMax;
-				auto currentMove = minimax(grid, isNextPlayerMax, depth + 1);
+				auto currentMove = minimax(grid, isNextPlayerMax, depth + 1, alpha, beta);
 
 				grid[i][j] = EMPTY; // undo move
 
@@ -136,6 +136,20 @@ BestMove minimax(int grid[3][3], bool isMax, int depth)
 					bestMove = currentMove;
 					bestMove.row = i;
 					bestMove.col = j;
+				}
+
+				if (isMax)
+				{
+					alpha = std::max(alpha, bestMove.value);
+				}
+				else
+				{
+					beta = std::min(beta, bestMove.value);
+				}
+
+				if (beta <= alpha)
+				{
+					return bestMove;
 				}
 			}
 		}
@@ -223,7 +237,7 @@ void WinMain()
 					if (!isGameOver)
 					{
 						// Make AI move
-						BestMove move = minimax(grid, false, 0);
+						BestMove move = minimax(grid, false, 0, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
 						grid[move.row][move.col] = MIN;
 						currentPlayer = !currentPlayer;
 						evaluateGameOver();
